@@ -29,11 +29,17 @@ class MysqlDB:
 	# execute sql statment
 	def exeSQL(self, sql ):
 		try:
+			print sql
 			self.cursor.execute( sql )
 			self.db.commit()
 		except:
 			self.db.rollback()
-
+	
+	def createTable( self, table_name ):
+		sql = "CREATE TABLE [IF NOT EXISTS] " + table_name 
+		self.exeSQL( sql )
+		print sql	
+	
 	def basicInfor(self):
 		self.cursor.execute( "SELECT VERSION()")
 		data = self.cursor.fetchone()
