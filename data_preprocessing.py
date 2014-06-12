@@ -20,13 +20,11 @@ def readURLFile(file_name):
 		content = inputFile.readlines()
 		for line in content:
 			line = line.split(" ")
-			print line[1]
 			data_url[ line[0] ] = line[1]
 	return data_url
 
 # get data by read url
 def getData(url):
-	
 	# make sure that we can get data from server
 	try:
 		response = urllib2.urlopen( url )
@@ -34,8 +32,11 @@ def getData(url):
 		print "Cannot retrieve URL: HTTP Error Code", e.code
 		sys.exit(0)
 	except urllib2.URLError, e:
-			print "Cannot retrieve URL: " + e.reason[1]
-			sys.exit(0)
+		print "Cannot retrieve URL: " + e.reason[1]
+		sys.exit(0)
+	except ValueError, e:
+		print "URL value ERROR"
+		sys.exit(0)
 	return response
 
 def JsonReader( raw_data ):
@@ -84,7 +85,10 @@ def insertReadPriceData( data_name, datum, db):
 	tw_price2 = unicode("總額元", "utf-8")
 	tw_area = unicode( "鄉鎮市區", "utf-8" )
 	
+	# sql insert command
 	sql = "INSERT INTO " + data_name + "( year, road, area, price ) VALUES"
+	
+	# check data format
 	if tw_area in datum and tw_road_area in datum:
 		if tw_buy_year in datum and tw_price in datum:
 			sql = sql + "('" + str(datum[tw_buy_year]) + "','" + datum[tw_road_area] + "','" + datum[tw_area] + "','" + str(datum[tw_price]) + "');" 
@@ -94,8 +98,10 @@ def insertReadPriceData( data_name, datum, db):
 		print "Error json format is not match!" 
 		sys.exit(0)
 
-
+	# exe insert
 	db.exeSQL( sql )	
+
+
 
 
 if __name__=='__main__':
@@ -104,15 +110,39 @@ if __name__=='__main__':
 		json_url_list = readURLFile( sys.argv[1] )
 		csv_url_list = readURLFile( sys.argv[2] )
 	else:
+		# database object
 		mydb = MysqlDB( 'localhost', 'mydb', 'root', 'axszdc', 'utf8' )
-		rep_data_url = readURLFile( "input_data/real_price_url" )
+		
+		# get url_list from file
+		#rep_data_url = readURLFile( "input_data/real_price_url" )
 		#json_data_url = readURLFile( "input_data/json_url" )
-		#csv_data_url = readURLFile( "input_data/csv_url" )
-		for data_name in rep_data_url:
-			#mydb.createTable( data_name )
+		csv_data_url = readURLFile( "input_data/csv_url" )
+
+		# insert real_price data to database
+		'''for data_name in rep_data_url:
 			raw_data = getData( rep_data_url[ data_name ] )
 			data = JsonReader( raw_data )
 			city_data = filterByCity( data, "臺南市" )
 			for datum in city_data:
-				insertReadPriceData( data_name, datum, mydb)
+				insertReadPriceData( data_name, datum, mydb)'''
+
+		# json format data: create data table and insert data to database
+		'''for data_name in json_data_url:
+			raw_data = getData( json_data_url[ data_name ] )
+			data = JsonReader( raw_data )
+			mydb.createTable( data_name, data[0].keys() )
+			for datum in data:
+				if "CountryName" in datum and datum["CountryName"] == unicode("臺南市", "utf-8"):
+					mydb.insertData( data_name, datum.keys(), datum.values() )'''
+			
+		# csv format data: create data table and insert data to database
+		for data_name in csv_data_url:
+			raw_data = getData( csv_data_url[ data_name ] )
+			data = CSVReader( raw_data )
+			for datum in data:
+				for col in datum:
+					print col,
+				print
+
+		# disconnect database
 		mydb.close()
